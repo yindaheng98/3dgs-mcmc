@@ -1,3 +1,4 @@
+/gaussian_splatting
 data
 output
 *.dist-info

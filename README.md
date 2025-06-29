@@ -1,3 +1,34 @@
+# 3D Gaussian Splatting as Markov Chain Monte Carlo (Packaged Python Version)
+
+This repository contains the **refactored Python code for [3dgs-mcmc](https://github.com/ubc-vision/3dgs-mcmc)**. It is forked from commit [7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13](https://github.com/ubc-vision/3dgs-mcmc/tree/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13). The original code has been **refactored to follow the standard Python package structure**, while **maintaining the same algorithms as the original version**.
+
+## Features
+
+* [x] Code organized as a standard Python package
+* [x] Markov Chain Monte Carlo trainer for 3D Gaussian Splatting
+
+## Prerequisites
+
+* [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
+* [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
+
+## Install (Development)
+
+Install [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting).
+You can download the wheel from [PyPI](https://pypi.org/project/gaussian-splatting/):
+```shell
+pip install --upgrade gaussian-splatting
+```
+Alternatively, install the latest version from the source:
+```sh
+pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
+```
+
+(Optional) If you prefer not to install `gaussian-splatting` and `reduced-3dgs` in your environment, you can install them in your `lapis-gs` directory:
+```sh
+pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
+```
+
 # ** NeurIPS 2024 SPOTLIGHT **
 # 3D Gaussian Splatting as Markov Chain Monte Carlo
 
