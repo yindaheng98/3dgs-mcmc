@@ -1,8 +1,9 @@
+from functools import partial
 import math
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, DensificationTrainer
+from gaussian_splatting.trainer import DensificationTrainer, DensificationInstruct
 from .diff_gaussian_rasterization import compute_relocation
 
 # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/utils/reloc_utils.py#L5
@@ -143,13 +144,57 @@ class Relocater(DensificationTrainer):
         model._opacity[add_idx] = new_opacity
         model._scaling[add_idx] = new_scaling
 
-        densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation)
+        ret = densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation)
         replace_tensors_to_optimizer(model, self.optimizer, inds=add_idx)
 
-        return num_gs
+        return ret
 
-    def relocate_and_densify(self):
+    def relocate_and_add_new_gs(self, densification_postfix):
         # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/train.py#L125
         dead_mask = (self.model.get_opacity <= 0.005).squeeze(-1)
         self.relocate_gs(dead_mask=dead_mask)
-        self.add_new_gs(cap_max=self.cap_max)
+        return self.add_new_gs(cap_max=self.cap_max, densification_postfix=densification_postfix)
+
+    def add_new_gs_postfix_remove_mask(self, remove_mask, new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation):
+        self.add_points(
+            new_xyz,
+            new_features_dc,
+            new_features_rest,
+            new_opacity,
+            new_scaling,
+            new_rotation)
+        if remove_mask is None:
+            return None
+        return torch.cat([remove_mask, torch.zeros(new_xyz.shape[0], dtype=torch.bool, device=remove_mask.device)], dim=0)
+
+    def relocate_and_add_new_gs_and_update_instruct(self, instruct: DensificationInstruct):
+        remove_mask = self.relocate_and_add_new_gs(partial(self.add_new_gs_postfix_remove_mask, instruct.remove_mask))
+        instruct = instruct._replace(remove_mask=remove_mask)
+        return instruct
+
+    def densify_and_prune(self, loss, out, camera):
+        instruct = self.densifier.densify_and_prune(loss, out, camera, self.curr_step)
+        if self.densify_from_iter <= self.curr_step <= self.densify_until_iter and self.curr_step % self.densify_interval == 0:
+            instruct = self.relocate_and_add_new_gs_and_update_instruct(instruct)
+            hook = True
+        hook = False
+        if instruct.remove_mask is not None:
+            self.remove_points(instruct.remove_mask)
+            hook = True
+        if instruct.new_xyz is not None:
+            assert instruct.new_features_dc is not None
+            assert instruct.new_features_rest is not None
+            assert instruct.new_opacities is not None
+            assert instruct.new_scaling is not None
+            assert instruct.new_rotation is not None
+            self.add_points(
+                instruct.new_xyz,
+                instruct.new_features_dc,
+                instruct.new_features_rest,
+                instruct.new_opacities,
+                instruct.new_scaling,
+                instruct.new_rotation)
+            hook = True
+        if hook:
+            self.densifier.after_densify_and_prune_hook(loss, out, camera)
+            torch.cuda.empty_cache()
