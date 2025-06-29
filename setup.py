@@ -19,9 +19,6 @@ with open("README.md", "r", encoding='utf8') as fh:
 rasterizor_root = "submodules/diff-gaussian-rasterization"
 rasterizor_sources = [
     "cuda_rasterizer/utils.cu",
-    "cuda_rasterizer/rasterizer_impl.cu",
-    "cuda_rasterizer/forward.cu",
-    "cuda_rasterizer/backward.cu",
     "rasterize_points.cu",
     "ext.cpp"]
 
