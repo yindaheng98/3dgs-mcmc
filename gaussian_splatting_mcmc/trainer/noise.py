@@ -10,16 +10,21 @@ class Noiser(TrainerWrapper):
     def __init__(
             self, base_trainer: AbstractTrainer,
             noise_lr=5e5,
+            noise_from_iter=0,
+            noise_until_iter=29_990,
     ):
         super().__init__(base_trainer)
         self.noise_lr = noise_lr
         assert 'xyz' in self.schedulers, "Noiser requires 'xyz' scheduler to be defined."
+        self.noise_from_iter = noise_from_iter
+        self.noise_until_iter = noise_until_iter
 
     def after_optim_hook(self, *args, **kwargs):
-        gaussians = self.model
-        xyz_lr = self.schedulers['xyz'](self.curr_step)
-        with torch.no_grad():
-            self.add_noise(gaussians, xyz_lr)
+        if self.noise_from_iter <= self.curr_step <= self.noise_until_iter:
+            with torch.no_grad():
+                gaussians = self.model
+                xyz_lr = self.schedulers['xyz'](self.curr_step)
+                self.add_noise(gaussians, xyz_lr)
         return super().after_optim_hook(*args, **kwargs)
 
     def add_noise(self, gaussians: GaussianModel, xyz_lr: float):
