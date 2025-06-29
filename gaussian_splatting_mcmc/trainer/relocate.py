@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper
+from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, DensificationTrainer
 from .diff_gaussian_rasterization import compute_relocation
 
 # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/utils/reloc_utils.py#L5
@@ -85,7 +85,7 @@ def _sample_alives(probs, num, alive_indices=None):
     return sampled_idxs, ratio
 
 
-class Relocater(TrainerWrapper):
+class Relocater(DensificationTrainer):
 
     def relocate_gs(self, dead_mask=None):
         model = self.model
@@ -118,7 +118,7 @@ class Relocater(TrainerWrapper):
 
         replace_tensors_to_optimizer(model, self.optimizer, inds=reinit_idx)
 
-    def add_new_gs(self, cap_max):
+    def add_new_gs(self, cap_max, densification_postfix):
         model = self.model
         # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L504
         current_num_points = model._opacity.shape[0]
@@ -143,7 +143,13 @@ class Relocater(TrainerWrapper):
         model._opacity[add_idx] = new_opacity
         model._scaling[add_idx] = new_scaling
 
-        model.densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation, reset_params=False)
+        densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation)
         replace_tensors_to_optimizer(model, self.optimizer, inds=add_idx)
 
         return num_gs
+
+    def relocate_and_densify(self):
+        # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/train.py#L125
+        dead_mask = (self.model.get_opacity <= 0.005).squeeze(-1)
+        self.relocate_gs(dead_mask=dead_mask)
+        self.add_new_gs(cap_max=self.cap_max)
