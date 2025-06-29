@@ -3,7 +3,7 @@ import math
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer import DensificationTrainer, DensificationInstruct
+from gaussian_splatting.trainer import AbstractDensifier, DensificationTrainer, DensificationInstruct
 from .diff_gaussian_rasterization import compute_relocation
 
 # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/utils/reloc_utils.py#L5
@@ -87,6 +87,23 @@ def _sample_alives(probs, num, alive_indices=None):
 
 
 class Relocater(DensificationTrainer):
+
+    def __init__(
+            self, model: GaussianModel,
+            scene_extent: float,
+            densifier: AbstractDensifier,
+            cap_max=100_000,
+            densify_from_iter=500,
+            densify_until_iter=15000,
+            densify_interval=100,
+            *args,
+            **kwargs
+    ):
+        super().__init__(model, scene_extent, densifier, *args, **kwargs)
+        self.cap_max = cap_max
+        self.densify_from_iter = densify_from_iter
+        self.densify_until_iter = densify_until_iter
+        self.densify_interval = densify_interval
 
     def relocate_gs(self, dead_mask=None):
         model = self.model
