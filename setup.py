@@ -22,9 +22,9 @@ rasterizor_sources = [
     "rasterize_points.cu",
     "ext.cpp"]
 
-packages = ['mcmc_3dgs'] + ["mcmc_3dgs." + package for package in find_packages(where="mcmc_3dgs")]
+packages = ['gaussian_splatting_mcmc'] + ["gaussian_splatting_mcmc." + package for package in find_packages(where="gaussian_splatting_mcmc")]
 rasterizor_packages = {
-    'mcmc_3dgs.diff_gaussian_rasterization': 'submodules/diff-gaussian-rasterization/diff_gaussian_rasterization',
+    'gaussian_splatting_mcmc.diff_gaussian_rasterization': 'submodules/diff-gaussian-rasterization/diff_gaussian_rasterization',
 }
 
 cxx_compiler_flags = []
@@ -35,7 +35,7 @@ if os.name == 'nt':
     nvcc_compiler_flags.append("-allow-unsupported-compiler")
 
 setup(
-    name="mcmc_3dgs",
+    name="gaussian_splatting_mcmc",
     version='0.0.0',
     author='yindaheng98',
     author_email='yindaheng98@gmail.com',
@@ -48,12 +48,12 @@ setup(
     ],
     packages=packages + list(rasterizor_packages.keys()),
     package_dir={
-        'mcmc_3dgs': 'mcmc_3dgs',
+        'gaussian_splatting_mcmc': 'gaussian_splatting_mcmc',
         **rasterizor_packages
     },
     ext_modules=[
         CUDAExtension(
-            name="mcmc_3dgs.diff_gaussian_rasterization._C",
+            name="gaussian_splatting_mcmc.diff_gaussian_rasterization._C",
             sources=[os.path.join(rasterizor_root, source) for source in rasterizor_sources],
             extra_compile_args={"nvcc": nvcc_compiler_flags + ["-I" + os.path.join(os.path.abspath(rasterizor_root), "third_party/glm/")]}
         ),
