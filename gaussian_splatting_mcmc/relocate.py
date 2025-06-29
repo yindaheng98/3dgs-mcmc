@@ -1,4 +1,4 @@
-from diff_gaussian_rasterization import compute_relocation
+from .diff_gaussian_rasterization import compute_relocation
 import torch
 import math
 
