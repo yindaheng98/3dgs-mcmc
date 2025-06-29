@@ -62,30 +62,30 @@ def replace_tensors_to_optimizer(model: GaussianModel, optimizer: torch.optim.Op
     return optimizable_tensors
 
 
+def _update_params(model: GaussianModel, idxs, ratio):
+    # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L451
+    new_opacity, new_scaling = compute_relocation_cuda(
+        opacity_old=model.get_opacity[idxs, 0],
+        scale_old=model.get_scaling[idxs],
+        N=ratio[idxs, 0] + 1
+    )
+    new_opacity = torch.clamp(new_opacity.unsqueeze(-1), max=1.0 - torch.finfo(torch.float32).eps, min=0.005)
+    new_opacity = model.inverse_opacity_activation(new_opacity)
+    new_scaling = model.scaling_inverse_activation(new_scaling.reshape(-1, 3))
+    return model._xyz[idxs], model._features_dc[idxs], model._features_rest[idxs], new_opacity, new_scaling, model._rotation[idxs]
+
+
+def _sample_alives(probs, num, alive_indices=None):
+    # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L464
+    probs = probs / (probs.sum() + torch.finfo(torch.float32).eps)
+    sampled_idxs = torch.multinomial(probs, num, replacement=True)
+    if alive_indices is not None:
+        sampled_idxs = alive_indices[sampled_idxs]
+    ratio = torch.bincount(sampled_idxs).unsqueeze(-1)
+    return sampled_idxs, ratio
+
+
 class Relocater(TrainerWrapper):
-
-    def _update_params(self, idxs, ratio):
-        model = self.model
-        # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L451
-        new_opacity, new_scaling = compute_relocation_cuda(
-            opacity_old=model.get_opacity[idxs, 0],
-            scale_old=model.get_scaling[idxs],
-            N=ratio[idxs, 0] + 1
-        )
-        new_opacity = torch.clamp(new_opacity.unsqueeze(-1), max=1.0 - torch.finfo(torch.float32).eps, min=0.005)
-        new_opacity = model.inverse_opacity_activation(new_opacity)
-        new_scaling = model.scaling_inverse_activation(new_scaling.reshape(-1, 3))
-
-        return model._xyz[idxs], model._features_dc[idxs], model._features_rest[idxs], new_opacity, new_scaling, model._rotation[idxs]
-
-    def _sample_alives(self, probs, num, alive_indices=None):
-        # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L464
-        probs = probs / (probs.sum() + torch.finfo(torch.float32).eps)
-        sampled_idxs = torch.multinomial(probs, num, replacement=True)
-        if alive_indices is not None:
-            sampled_idxs = alive_indices[sampled_idxs]
-        ratio = torch.bincount(sampled_idxs).unsqueeze(-1)
-        return sampled_idxs, ratio
 
     def relocate_gs(self, dead_mask=None):
         model = self.model
@@ -102,7 +102,7 @@ class Relocater(TrainerWrapper):
 
         # sample from alive ones based on opacity
         probs = (model.get_opacity[alive_indices, 0])
-        reinit_idx, ratio = self._sample_alives(alive_indices=alive_indices, probs=probs, num=dead_indices.shape[0])
+        reinit_idx, ratio = _sample_alives(alive_indices=alive_indices, probs=probs, num=dead_indices.shape[0])
 
         (
             model._xyz[dead_indices],
@@ -111,7 +111,7 @@ class Relocater(TrainerWrapper):
             model._opacity[dead_indices],
             model._scaling[dead_indices],
             model._rotation[dead_indices]
-        ) = self._update_params(reinit_idx, ratio=ratio)
+        ) = _update_params(model, reinit_idx, ratio=ratio)
 
         model._opacity[reinit_idx] = model._opacity[dead_indices]
         model._scaling[reinit_idx] = model._scaling[dead_indices]
@@ -129,7 +129,7 @@ class Relocater(TrainerWrapper):
             return 0
 
         probs = model.get_opacity.squeeze(-1)
-        add_idx, ratio = self._sample_alives(probs=probs, num=num_gs)
+        add_idx, ratio = _sample_alives(probs=probs, num=num_gs)
 
         (
             new_xyz,
@@ -138,7 +138,7 @@ class Relocater(TrainerWrapper):
             new_opacity,
             new_scaling,
             new_rotation
-        ) = self._update_params(add_idx, ratio=ratio)
+        ) = _update_params(model, add_idx, ratio=ratio)
 
         model._opacity[add_idx] = new_opacity
         model._scaling[add_idx] = new_scaling
