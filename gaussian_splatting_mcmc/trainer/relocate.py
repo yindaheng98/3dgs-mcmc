@@ -1,9 +1,10 @@
 from functools import partial
 import math
+from typing import Callable
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer import AbstractDensifier, DensificationTrainer, DensificationInstruct
+from gaussian_splatting.trainer import AbstractDensifier, DensificationTrainer, DensificationInstruct, NoopDensifier
 from .diff_gaussian_rasterization import compute_relocation
 
 # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/utils/reloc_utils.py#L5
@@ -92,18 +93,18 @@ class Relocater(DensificationTrainer):
             self, model: GaussianModel,
             scene_extent: float,
             densifier: AbstractDensifier,
-            cap_max=100_000,
-            densify_from_iter=500,
-            densify_until_iter=15000,
-            densify_interval=100,
+            cap_max=1_000_000,
+            relocate_from_iter=500,
+            relocate_until_iter=25_000,
+            relocate_interval=100,
             *args,
             **kwargs
     ):
         super().__init__(model, scene_extent, densifier, *args, **kwargs)
         self.cap_max = cap_max
-        self.densify_from_iter = densify_from_iter
-        self.densify_until_iter = densify_until_iter
-        self.densify_interval = densify_interval
+        self.densify_from_iter = relocate_from_iter
+        self.densify_until_iter = relocate_until_iter
+        self.densify_interval = relocate_interval
 
     def relocate_gs(self, dead_mask=None):
         model = self.model
@@ -144,7 +145,7 @@ class Relocater(DensificationTrainer):
         num_gs = max(0, target_num - current_num_points)
 
         if num_gs <= 0:
-            return 0
+            return densification_postfix(None, None, None, None, None, None)
 
         probs = model.get_opacity.squeeze(-1)
         add_idx, ratio = _sample_alives(probs=probs, num=num_gs)
@@ -173,6 +174,13 @@ class Relocater(DensificationTrainer):
         return self.add_new_gs(cap_max=self.cap_max, densification_postfix=densification_postfix)
 
     def add_new_gs_postfix_remove_mask(self, remove_mask, new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation):
+        if new_xyz is None:
+            return remove_mask
+        assert new_features_dc is not None
+        assert new_features_rest is not None
+        assert new_opacity is not None
+        assert new_scaling is not None
+        assert new_rotation is not None
         self.add_points(
             new_xyz,
             new_features_dc,
@@ -215,3 +223,28 @@ class Relocater(DensificationTrainer):
         if hook:
             self.densifier.after_densify_and_prune_hook(loss, out, camera)
             torch.cuda.empty_cache()
+
+
+def RelocationDensifierTrainerWrapper(
+        noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
+        model: GaussianModel,
+        scene_extent: float,
+        *args, **kwargs):
+    densifier = noargs_base_densifier_constructor(model, scene_extent)
+    return Relocater(
+        model, scene_extent,
+        densifier,
+        *args, **kwargs
+    )
+
+
+def BaseRelocationTrainer(
+        model: GaussianModel,
+        scene_extent: float,
+        *args, **kwargs):
+    return RelocationDensifierTrainerWrapper(
+        lambda model, scene_extent: NoopDensifier(model),
+        model,
+        scene_extent,
+        *args, **kwargs
+    )

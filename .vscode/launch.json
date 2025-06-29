@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "train",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "gaussian_splatting_mcmc.train",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck",
+                "-i",
+                "30000",
+                "--mode",
+                "base",
+            ]
+        },
+        {
+            "name": "render",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "gaussian_splatting.render",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck",
+                "-i",
+                "30000",
+                "--load_camera",
+                "output/truck/cameras.json",
+            ]
+        },
+    ]
+}
