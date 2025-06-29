@@ -44,11 +44,10 @@ class Noiser(TrainerWrapper):
 def NoiseWrapper(
         base_trainer_constructor: Callable[..., AbstractTrainer],
         model: GaussianModel,
-        scene_extent: float,
         *args,
         noise_lr=5e5,
         **kwargs) -> Noiser:
     return Noiser(
-        base_trainer=base_trainer_constructor(model, scene_extent, *args, **kwargs),
+        base_trainer=base_trainer_constructor(model, *args, **kwargs),
         noise_lr=noise_lr,
     )
