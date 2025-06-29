@@ -2,8 +2,7 @@
 data
 output
 *.dist-info
-gaussian_splatting_mcmc/diff_gaussian_rasterization
-gaussian_splatting_mcmc/simple_knn
+gaussian_splatting_mcmc/trainer/diff_gaussian_rasterization
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
