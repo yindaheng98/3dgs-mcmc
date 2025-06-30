@@ -12,6 +12,14 @@ This repository contains the **refactored Python code for [3dgs-mcmc](https://gi
 * [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
 
+## Install
+
+### PyPI Install
+
+```shell
+pip install --upgrade gaussian-splatting-mcmc
+```
+
 ## Install (Development)
 
 Install [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting).
@@ -24,9 +32,39 @@ Alternatively, install the latest version from the source:
 pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 ```
 
+Install [`reduced-3dgs`](https://github.com/yindaheng98/reduced-3dgs).
+You can download the wheel from [PyPI](https://pypi.org/project/reduced-3dgs/):
+```shell
+pip install --upgrade reduced-3dgs
+```
+Alternatively, install the latest version from the source:
+```sh
+pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
+```
+
 (Optional) If you prefer not to install `gaussian-splatting` and `reduced-3dgs` in your environment, you can install them in your `lapis-gs` directory:
 ```sh
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
+pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
+```
+
+## Quick Start
+
+1. Download dataset (T&T+DB COLMAP dataset, size 650MB):
+
+```shell
+wget https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/datasets/input/tandt_db.zip -P ./data
+unzip data/tandt_db.zip -d data/
+```
+
+2. Train 3DGS-MCMC:
+```shell
+python -m gaussian_splatting_mcmc.train -s data/truck -d output/truck -i 30000 --mode base
+```
+
+3. Render:
+```shell
+python -m gaussian_splatting.render -s data/truck -d output/truck -i 30000 --load_camera output/truck/cameras.json
 ```
 
 # ** NeurIPS 2024 SPOTLIGHT **
@@ -82,70 +120,3 @@ pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/ga
    }</code></pre>
   </div>
 </section>
-
-
-## Updates
-### Dec. 5th, 2024
-A new change has been pushed to diff-gaussian-rasterization. In order to pull it:
-```sh
-cd submodules/diff-gaussian-rasterization
-git pull origin gs-mcmc
-cd ../..
-pip install submodules/diff-gaussian-rasterization
-```
-
-This change incorporates "Section B.2 Tighter Bounding of 2D Gaussians" from [StopThePop](https://arxiv.org/abs/2402.00525) paper. This bound allows to fit a tighter bound around Gaussians when opacity is less than 1.
-
-## How to Install
-
-This project is built on top of the [Original 3DGS code base](https://github.com/graphdeco-inria/gaussian-splatting) and has been tested only on Ubuntu 20.04. If you encounter any issues, please refer to the [Original 3DGS code base](https://github.com/graphdeco-inria/gaussian-splatting) for installation instructions.
-
-### Installation Steps
-
-1. **Clone the Repository:**
-   ```sh
-   git clone --recursive https://github.com/ubc-vision/3dgs-mcmc.git
-   cd 3dgs-mcmc
-   ```
-2. **Set Up the Conda Environment:**
-    ```sh
-    conda create -y -n 3dgs-mcmc-env python=3.8
-    conda activate 3dgs-mcmc-env
-    ```
-3. **Install Dependencies:**
-    ```sh
-    pip install plyfile tqdm torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
-    conda install cudatoolkit-dev=11.7 -c conda-forge
-    ```
-4. **Install Submodules:**
-    ```sh
-    CUDA_HOME=PATH/TO/CONDA/envs/3dgs-mcmc-env/pkgs/cuda-toolkit/ pip install submodules/diff-gaussian-rasterization submodules/simple-knn/
-    ```
-### Common Issues:
-1. **Access Error During Cloning:**
-If you encounter an access error when cloning the repository, ensure you have your SSH key set up correctly. Alternatively, you can clone using HTTPS.
-2. **Running diff-gaussian-rasterization Fails:**
-You may need to change the compiler options in the setup.py file to run both the original and this code. Update the setup.py with the following extra_compile_args:
-    ```sh
-    extra_compile_args={"nvcc": ["-Xcompiler", "-fno-gnu-unique", "-I" + os.path.join(os.path.dirname(os.path.abspath(__file__)), "third_party/glm/")]}
-    ```
-    Afterwards, you need to reinstall diff-gaussian-rasterization. This is mentioned in [3DGS-issue-#41](https://github.com/graphdeco-inria/gaussian-splatting/issues/41).
-    
-By following these steps, you should be able to install the project and reproduce the results. If you encounter any issues, refer to the original 3DGS code base for further guidance.
-
-## How to run
-Running code is similar to the [Original 3DGS code base](https://github.com/graphdeco-inria/gaussian-splatting) with the following differences:
-- You need to specify the maximum number of Gaussians that will be used. This is performed using --cap_max argument. The results in the paper uses the final number of Gaussians reached by the original 3DGS run for each shape.
-- You need to specify the scale regularizer coefficient. This is performed using --scale_reg argument. For all the experiments in the paper, we use 0.01.
-- You need to specify the opacity regularizer coefficient. This is performed using --opacity_reg argument. For Deep Blending dataset, we use 0.001. For all other experiments in the paper, we use 0.01.
-- You need to specify the noise learning rate. This is performed using --noise_lr argument. For all the experiments in the paper, we use 5e5.
-- You need to specify the initialization type. This is performed using --init_type argument. Options are random (to initialize randomly) or sfm (to initialize using a pointcloud).
-
-## How to Reproduce the Results in the Paper
-```sh
-python train.py --source_path PATH/TO/Shape --config configs/shape.json --eval
-```
-
-
-
-

@@ -1,4 +1,5 @@
 /gaussian_splatting
+/reduced_3dgs
 data
 output
 *.dist-info

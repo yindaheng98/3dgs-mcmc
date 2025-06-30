@@ -36,11 +36,11 @@ if os.name == 'nt':
 
 setup(
     name="gaussian_splatting_mcmc",
-    version='0.0.0',
+    version='1.0.0',
     author='yindaheng98',
     author_email='yindaheng98@gmail.com',
-    url='https://github.com/yindaheng98/gaussian-splatting',
-    description=u'Refactored python training and inference code for 3D Gaussian Splatting',
+    url='https://github.com/yindaheng98/3dgs-mcmc',
+    description=u'Refactored python training code for 3D Gaussian Splatting as Markov Chain Monte Carlo',
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[

@@ -17,6 +17,7 @@
                 "30000",
                 "--mode",
                 "base",
+                "-oopacity_reg_weight=0",
             ]
         },
         {
