@@ -12,7 +12,7 @@ modes = {
     "base": MCMCFullTrainer,
     "camera": CameraMCMCFullTrainer,
     "shculling": SHCullingMCMCFullTrainer,
-    "noreg-camera": CameraSHCullingMCMCFullTrainer,
+    "shculling-camera": CameraSHCullingMCMCFullTrainer,
 }
 
 
