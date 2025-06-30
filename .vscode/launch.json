@@ -16,9 +16,32 @@
                 "-i",
                 "30000",
                 "--mode",
-                "base",
+                "camera",
                 "-oopacity_reg_weight=0",
             ]
+        },
+        {
+            "name": "train reduced",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "gaussian_splatting_mcmc.train_reduced",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck",
+                "-i",
+                "30000",
+                "--mode",
+                "camera",
+                "-oopacity_reg_weight=0",
+                "-omercy_type='redundancy_opacity_opacity'",
+            ],
+            "env": {
+                "CUDA_LAUNCH_BLOCKING": "1"
+            }
         },
         {
             "name": "render",
