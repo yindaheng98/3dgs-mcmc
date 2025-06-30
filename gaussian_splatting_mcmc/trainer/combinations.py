@@ -1,9 +1,23 @@
+from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
-from gaussian_splatting.trainer import CameraTrainerWrapper, DepthTrainerWrapper, CameraTrainerWrapper
+from gaussian_splatting.trainer import AbstractDensifier, CameraTrainerWrapper, DepthTrainerWrapper, CameraTrainerWrapper
 from .noise import NoiseWrapper
-from .relocate import BaseRelocationTrainer
+from .relocate import Relocater, BaseRelocationTrainer
 from .scale_opacity_reg import ScaleOpacityRegularizeTrainerWrapper
+
+
+def NoiseRelocationDensifierTrainerWrapper(
+        noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
+        model: GaussianModel,
+        scene_extent: float,
+        *args, **kwargs):
+    return NoiseWrapper(
+        lambda model, scene_extent, *args, **kwargs: Relocater(model, scene_extent, noargs_base_densifier_constructor(model, scene_extent), *args, **kwargs),
+        model, scene_extent, *args, **kwargs)
+
+
+MCMCDensifierTrainerWrapper = NoiseRelocationDensifierTrainerWrapper
 
 
 def NoiseRelocationTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs):
