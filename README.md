@@ -6,6 +6,7 @@ This repository contains the **refactored Python code for [3dgs-mcmc](https://gi
 
 * [x] Code organized as a standard Python package
 * [x] Markov Chain Monte Carlo trainer for 3D Gaussian Splatting
+* [x] Integration with [reduced-3dgs](https://github.com/yindaheng98/reduced-3dgs)
 
 ## Prerequisites
 
