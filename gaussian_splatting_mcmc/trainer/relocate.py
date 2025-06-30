@@ -93,11 +93,11 @@ class Relocater(DensificationTrainer):
             self, model: GaussianModel,
             scene_extent: float,
             densifier: AbstractDensifier,
+            *args,
             cap_max=1_000_000,
             relocate_from_iter=500,
             relocate_until_iter=25_000,
             relocate_interval=100,
-            *args,
             **kwargs
     ):
         super().__init__(model, scene_extent, densifier, *args, **kwargs)

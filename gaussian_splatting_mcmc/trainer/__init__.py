@@ -1,3 +1,4 @@
 from .noise import Noiser, NoiseWrapper
 from .relocate import Relocater, RelocationDensifierTrainerWrapper, BaseRelocationTrainer
-from .combinations import MCMCTrainer
+from .scale_opacity_reg import ScaleOpacityRegularizer, ScaleOpacityRegularizeTrainerWrapper, BaseScaleOpacityRegularizeTrainer
+from .combinations import NoiseRelocationTrainer, MCMCTrainer
