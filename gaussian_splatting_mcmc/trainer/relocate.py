@@ -199,10 +199,10 @@ class Relocater(DensificationTrainer):
 
     def densify_and_prune(self, loss, out, camera):
         instruct = self.densifier.densify_and_prune(loss, out, camera, self.curr_step)
+        hook = False
         if self.densify_from_iter <= self.curr_step <= self.densify_until_iter and self.curr_step % self.densify_interval == 0:
             instruct = self.relocate_and_add_new_gs_and_update_instruct(instruct)
             hook = True
-        hook = False
         if instruct.remove_mask is not None:
             self.remove_points(instruct.remove_mask)
             hook = True
