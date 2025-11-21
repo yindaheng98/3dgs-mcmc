@@ -12,41 +12,33 @@ This repository contains the **refactored Python code for [3dgs-mcmc](https://gi
 
 * [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
+* (Optional) [cuML](https://github.com/rapidsai/cuml) for faster vector quantization
 
-## Install
+(Optional) If you have trouble with [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting) and [reduced-3dgs](https://github.com/yindaheng98/reduced-3dgs), try to install it from source:
+```sh
+pip install wheel setuptools
+pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master --no-build-isolation
+pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main --no-build-isolation
+```
 
-### PyPI Install
+##  PyPI Install
 
 ```shell
 pip install --upgrade gaussian-splatting-mcmc
 ```
-
-## Install (Development)
-
-Install [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting).
-You can download the wheel from [PyPI](https://pypi.org/project/gaussian-splatting/):
+or
+build latest from source:
 ```shell
-pip install --upgrade gaussian-splatting
-```
-Alternatively, install the latest version from the source:
-```sh
-pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
+pip install wheel setuptools
+pip install --upgrade git+https://github.com/yindaheng98/3dgs-mcmc.git@main --no-build-isolation
 ```
 
-Install [`reduced-3dgs`](https://github.com/yindaheng98/reduced-3dgs).
-You can download the wheel from [PyPI](https://pypi.org/project/reduced-3dgs/):
+### Development Install
+
 ```shell
-pip install --upgrade reduced-3dgs
-```
-Alternatively, install the latest version from the source:
-```sh
-pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
-```
-
-(Optional) If you prefer not to install `gaussian-splatting` and `reduced-3dgs` in your environment, you can install them in your `lapis-gs` directory:
-```sh
-pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
-pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
+git clone --recursive https://github.com/yindaheng98/reduced-3dgs
+cd 3dgs-mcmc
+pip install --target . --upgrade --no-deps .
 ```
 
 ## Quick Start

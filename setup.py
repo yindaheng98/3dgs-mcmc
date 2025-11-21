@@ -36,7 +36,7 @@ if os.name == 'nt':
 
 setup(
     name="gaussian_splatting_mcmc",
-    version='1.1.4',
+    version='1.1.5',
     author='yindaheng98',
     author_email='yindaheng98@gmail.com',
     url='https://github.com/yindaheng98/3dgs-mcmc',
@@ -63,5 +63,6 @@ setup(
     },
     install_requires=[
         'gaussian-splatting',
+        'reduced-3dgs',
     ]
 )
