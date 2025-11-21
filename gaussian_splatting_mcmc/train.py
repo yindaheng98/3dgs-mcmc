@@ -23,7 +23,7 @@ modes = {
 
 def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, trainable_camera: bool = False, load_ply: str = None, configs={}) -> AbstractTrainer:
     constructor = modes[mode]
-    if trainable_camera:
+    if "camera" in mode or "reduced" in mode:
         trainer = constructor(
             gaussians,
             scene_extent=dataset.scene_extent(),
