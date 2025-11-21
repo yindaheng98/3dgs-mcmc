@@ -4,6 +4,7 @@ from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper
 from gaussian_splatting.utils import build_scaling_rotation
+from gaussian_splatting.trainer import BaseTrainer
 
 
 class Noiser(TrainerWrapper):
@@ -46,8 +47,29 @@ def NoiseWrapper(
         model: GaussianModel,
         *args,
         noise_lr=5e5,
+        noise_from_iter=0,
+        noise_until_iter=29_990,
         **kwargs) -> Noiser:
     return Noiser(
         base_trainer=base_trainer_constructor(model, *args, **kwargs),
         noise_lr=noise_lr,
+        noise_from_iter=noise_from_iter,
+        noise_until_iter=noise_until_iter,
     )
+
+
+def BaseNoiseTrainer(
+        model: GaussianModel,
+        *args,
+        noise_lr=5e5,
+        noise_from_iter=0,
+        noise_until_iter=29_990,
+        **kwargs) -> Noiser:
+    return NoiseWrapper(
+        base_trainer_constructor=BaseTrainer,
+        model=model,
+        *args,
+        noise_lr=noise_lr,
+        noise_from_iter=noise_from_iter,
+        noise_until_iter=noise_until_iter,
+        **kwargs)

@@ -13,12 +13,16 @@ def NoiseRelocationDensifierTrainerWrapper(
         scene_extent: float,
         *args,
         noise_lr=5e5,
+        noise_from_iter=0,
+        noise_until_iter=29_990,
         **kwargs):
     return NoiseWrapper(
         lambda model, scene_extent, *args, **kwargs: Relocater(model, scene_extent, noargs_base_densifier_constructor(model, scene_extent), *args, **kwargs),
         model, scene_extent,
         *args,
         noise_lr=noise_lr,
+        noise_from_iter=noise_from_iter,
+        noise_until_iter=noise_until_iter,
         **kwargs)
 
 
