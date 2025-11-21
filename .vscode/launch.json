@@ -24,7 +24,7 @@
             "name": "train reduced",
             "type": "debugpy",
             "request": "launch",
-            "module": "gaussian_splatting_mcmc.train_reduced",
+            "module": "gaussian_splatting_mcmc.train",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -35,7 +35,7 @@
                 "-i",
                 "30000",
                 "--mode",
-                "camera",
+                "reduced-camera",
                 "-oopacity_reg_weight=0",
                 "-omercy_type='redundancy_opacity_opacity'",
             ],
