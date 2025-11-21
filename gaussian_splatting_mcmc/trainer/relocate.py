@@ -237,14 +237,4 @@ def RelocationDensifierTrainerWrapper(
         *args, **kwargs
     )
 
-
-def BaseRelocationTrainer(
-        model: GaussianModel,
-        scene_extent: float,
-        *args, **kwargs):
-    return RelocationDensifierTrainerWrapper(
-        lambda model, scene_extent: NoopDensifier(model),
-        model,
-        scene_extent,
-        *args, **kwargs
-    )
+# similar to gaussian_splatting.trainer.densifier.densifier
