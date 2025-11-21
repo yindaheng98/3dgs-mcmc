@@ -45,31 +45,21 @@ class Noiser(TrainerWrapper):
 def NoiseWrapper(
         base_trainer_constructor: Callable[..., AbstractTrainer],
         model: GaussianModel,
+        scene_extent: float,
         *args,
         noise_lr=5e5,
         noise_from_iter=0,
         noise_until_iter=29_990,
         **kwargs) -> Noiser:
     return Noiser(
-        base_trainer=base_trainer_constructor(model, *args, **kwargs),
+        base_trainer=base_trainer_constructor(model, scene_extent, *args, **kwargs),
         noise_lr=noise_lr,
         noise_from_iter=noise_from_iter,
         noise_until_iter=noise_until_iter,
     )
 
 
-def BaseNoiseTrainer(
-        model: GaussianModel,
-        *args,
-        noise_lr=5e5,
-        noise_from_iter=0,
-        noise_until_iter=29_990,
-        **kwargs) -> Noiser:
-    return NoiseWrapper(
-        base_trainer_constructor=BaseTrainer,
-        model=model,
-        *args,
-        noise_lr=noise_lr,
-        noise_from_iter=noise_from_iter,
-        noise_until_iter=noise_until_iter,
-        **kwargs)
+def BaseNoiseTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs) -> Noiser:
+    return NoiseWrapper(BaseTrainer, model, scene_extent, *args, **kwargs)
+
+# similar to gaussian_splatting.trainer.depth
