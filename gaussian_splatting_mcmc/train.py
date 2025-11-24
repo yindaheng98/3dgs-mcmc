@@ -4,7 +4,8 @@ import torch
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer
-from gaussian_splatting.prepare import prepare_dataset, prepare_gaussians
+from gaussian_splatting.prepare import prepare_dataset
+from reduced_3dgs.prepare import prepare_gaussians
 from gaussian_splatting.train import save_cfg_args, training
 from gaussian_splatting_mcmc.trainer import MCMCTrainer, CameraMCMCTrainer, NoRegMCMCTrainer, CameraNoRegMCMCTrainer
 from gaussian_splatting_mcmc.trainer.extensions.reduced_3dgs import MCMCFullTrainer, CameraMCMCFullTrainer, SHCullingMCMCFullTrainer, CameraSHCullingMCMCFullTrainer
@@ -13,17 +14,17 @@ modes = {
     "base": MCMCTrainer,
     "camera": CameraMCMCTrainer,
     "noreg": NoRegMCMCTrainer,
-    "noreg-camera": CameraNoRegMCMCTrainer,
+    "camera-noreg": CameraNoRegMCMCTrainer,
     "reduced": MCMCFullTrainer,
-    "reduced-camera": CameraMCMCFullTrainer,
+    "camera-reduced": CameraMCMCFullTrainer,
     "reduced-shculling": SHCullingMCMCFullTrainer,
-    "reduced-camera-shculling": CameraSHCullingMCMCFullTrainer,
+    "camera-reduced-shculling": CameraSHCullingMCMCFullTrainer,
 }
 
 
 def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, trainable_camera: bool = False, load_ply: str = None, configs={}) -> AbstractTrainer:
     constructor = modes[mode]
-    if "camera" in mode or "reduced" in mode:
+    if trainable_camera or "reduced" in mode:
         trainer = constructor(
             gaussians,
             scene_extent=dataset.scene_extent(),

@@ -35,7 +35,7 @@
                 "-i",
                 "30000",
                 "--mode",
-                "reduced-camera",
+                "camera-reduced",
                 "-oopacity_reg_weight=0",
                 "-omercy_type='redundancy_opacity_opacity'",
             ],
