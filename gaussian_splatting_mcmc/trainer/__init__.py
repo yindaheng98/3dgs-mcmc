@@ -4,4 +4,4 @@ from .scale_opacity_reg import ScaleOpacityRegularizer, ScaleOpacityRegularizeTr
 from .combinations import BaseNoiseRelocationTrainer, BaseScaleOpacityRegularizeNoiseRelocationTrainer
 from .combinations import BaseNoiseRelocationCameraTrainer, BaseScaleOpacityRegularizeNoiseRelocationCameraTrainer
 from .combinations import NoRegMCMCTrainer, MCMCTrainer, MCMCCameraTrainer, NoRegMCMCCameraTrainer
-from .combinations import NoiseRelocationTrainerWrapper, MCMCTrainerWrapper
+from .combinations import NoRegMCMCTrainerWrapper, MCMCTrainerWrapper
