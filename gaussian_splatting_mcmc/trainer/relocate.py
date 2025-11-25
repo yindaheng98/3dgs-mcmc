@@ -209,7 +209,7 @@ def RelocationDensifierWrapper(
     )
 
 
-def RelocationDensifierTrainerWrapper(
+def RelocationTrainerWrapper(
         noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
@@ -237,7 +237,7 @@ def RelocationDensifierTrainerWrapper(
 
 
 def BaseRelocationTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs):
-    return RelocationDensifierTrainerWrapper(
+    return RelocationTrainerWrapper(
         lambda model, scene_extent: NoopDensifier(model),
         model,
         scene_extent,

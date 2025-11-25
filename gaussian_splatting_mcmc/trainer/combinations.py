@@ -3,7 +3,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
 from gaussian_splatting.trainer import AbstractDensifier, CameraTrainerWrapper, DepthTrainerWrapper, CameraTrainerWrapper
 from .noise import NoiseTrainerWrapper
-from .relocate import BaseRelocationTrainer, RelocationDensifierTrainerWrapper
+from .relocate import BaseRelocationTrainer, RelocationTrainerWrapper
 from .scale_opacity_reg import ScaleOpacityRegularizeTrainerWrapper
 
 # similar to BaseDensificationTrainer in gaussian_splatting.trainer.densifier.combinations
@@ -55,7 +55,7 @@ MCMCCameraTrainer = DepthScaleOpacityRegularizeNoiseRelocationCameraTrainer
 # similar to BaseOpacityResetDensificationTrainer in gaussian_splatting.trainer.combinations
 
 
-def NoiseRelocationDensifierTrainerWrapper(
+def NoiseRelocationTrainerWrapper(
         noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
@@ -65,7 +65,7 @@ def NoiseRelocationDensifierTrainerWrapper(
         noise_until_iter=29_990,
         **kwargs):
     return NoiseTrainerWrapper(
-        lambda model, scene_extent, *args, **kwargs: RelocationDensifierTrainerWrapper(
+        lambda model, scene_extent, *args, **kwargs: RelocationTrainerWrapper(
             noargs_base_densifier_constructor, model, scene_extent, *args, **kwargs),
         model, scene_extent,
         *args,
@@ -75,7 +75,7 @@ def NoiseRelocationDensifierTrainerWrapper(
         **kwargs)
 
 
-def ScaleOpacityRegularizeNoiseRelocationDensifierTrainerWrapper(
+def ScaleOpacityRegularizeNoiseRelocationTrainerWrapper(
         noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
@@ -86,7 +86,7 @@ def ScaleOpacityRegularizeNoiseRelocationDensifierTrainerWrapper(
         opacity_reg_weight=0.01,
         **kwargs):
     return ScaleOpacityRegularizeTrainerWrapper(
-        NoiseRelocationDensifierTrainerWrapper,
+        NoiseRelocationTrainerWrapper,
         noargs_base_densifier_constructor,
         model, scene_extent,
         *args,
@@ -97,6 +97,7 @@ def ScaleOpacityRegularizeNoiseRelocationDensifierTrainerWrapper(
         **kwargs)
 
 
-MCMCTrainerWrapper = ScaleOpacityRegularizeNoiseRelocationDensifierTrainerWrapper
+NoRegMCMCTrainerWrapper = NoiseRelocationTrainerWrapper
+MCMCTrainerWrapper = ScaleOpacityRegularizeNoiseRelocationTrainerWrapper
 
 # spacial, similar to DensificationTrainerWrapper in gaussian_splatting.trainer.densifier.combinations
