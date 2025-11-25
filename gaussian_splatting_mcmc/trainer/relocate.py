@@ -2,7 +2,7 @@ import math
 from typing import Callable
 import torch
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, DensificationInstruct
+from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, DensificationInstruct, NoopDensifier
 from .diff_gaussian_rasterization import compute_relocation
 
 # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/utils/reloc_utils.py#L5
@@ -234,3 +234,12 @@ def RelocationDensifierTrainerWrapper(
     )
 
 # similar to gaussian_splatting.trainer.densifier.densifier
+
+
+def BaseRelocationTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs):
+    return RelocationDensifierTrainerWrapper(
+        lambda model, scene_extent: NoopDensifier(model),
+        model,
+        scene_extent,
+        *args, **kwargs
+    )
