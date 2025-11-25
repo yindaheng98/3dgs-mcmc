@@ -1,10 +1,8 @@
-from functools import partial
 import math
 from typing import Callable
 import torch
-import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer import AbstractDensifier, DensificationTrainer, DensificationInstruct, NoopDensifier
+from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, DensificationInstruct
 from .diff_gaussian_rasterization import compute_relocation
 
 # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/utils/reloc_utils.py#L5
@@ -19,49 +17,6 @@ def compute_relocation_cuda(opacity_old, scale_old, N):
     # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/utils/reloc_utils.py#L11
     N.clamp_(min=1, max=N_max-1)
     return compute_relocation(opacity_old, scale_old, N, binoms, N_max)
-
-
-def replace_tensors_to_optimizer(model: GaussianModel, optimizer: torch.optim.Optimizer, inds=None):
-    # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L411
-    tensors_dict = {
-        "xyz": model._xyz,
-        "f_dc": model._features_dc,
-        "f_rest": model._features_rest,
-        "opacity": model._opacity,
-        "scaling": model._scaling,
-        "rotation": model._rotation}
-
-    optimizable_tensors = {}
-    for group in optimizer.param_groups:
-        if not group["name"] in tensors_dict:
-            continue
-        assert len(group["params"]) == 1
-        tensor = tensors_dict[group["name"]]
-
-        stored_state = optimizer.state.get(group['params'][0], None)
-        if inds is not None:
-            stored_state["exp_avg"][inds] = 0
-            stored_state["exp_avg_sq"][inds] = 0
-        else:
-            stored_state["exp_avg"] = torch.zeros_like(tensor)
-            stored_state["exp_avg_sq"] = torch.zeros_like(tensor)
-
-        del optimizer.state[group['params'][0]]
-        group["params"][0] = nn.Parameter(tensor.requires_grad_(True))
-        optimizer.state[group['params'][0]] = stored_state
-
-        optimizable_tensors[group["name"]] = group["params"][0]
-
-    model._xyz = optimizable_tensors["xyz"]
-    model._features_dc = optimizable_tensors["f_dc"]
-    model._features_rest = optimizable_tensors["f_rest"]
-    model._opacity = optimizable_tensors["opacity"]
-    model._scaling = optimizable_tensors["scaling"]
-    model._rotation = optimizable_tensors["rotation"]
-
-    torch.cuda.empty_cache()
-
-    return optimizable_tensors
 
 
 def _update_params(model: GaussianModel, idxs, ratio):
@@ -87,20 +42,26 @@ def _sample_alives(probs, num, alive_indices=None):
     return sampled_idxs, ratio
 
 
-class Relocater(DensificationTrainer):
+def _unique_reinit(n: int, reinit_idx: torch.Tensor, replace_opacity: torch.Tensor, replace_scaling: torch.Tensor):
+    reinit_mask = torch.zeros(n, device=reinit_idx.device, dtype=torch.bool)
+    reinit_mask[reinit_idx] = True
+    tmp_opacity = torch.zeros((n, *replace_opacity.shape[1:]), device=replace_opacity.device, dtype=replace_opacity.dtype)
+    tmp_opacity[reinit_idx] = replace_opacity
+    tmp_scaling = torch.zeros((n, *replace_scaling.shape[1:]), device=replace_scaling.device, dtype=replace_scaling.dtype)
+    tmp_scaling[reinit_idx] = replace_scaling
+    return reinit_mask, tmp_opacity[reinit_mask], tmp_scaling[reinit_mask]
+
+
+class Relocater(DensifierWrapper):
 
     def __init__(
-            self, model: GaussianModel,
-            scene_extent: float,
-            densifier: AbstractDensifier,
-            *args,
+            self, densifier: AbstractDensifier,
             cap_max=1_000_000,
             relocate_from_iter=500,
             relocate_until_iter=25_000,
             relocate_interval=100,
-            **kwargs
     ):
-        super().__init__(model, scene_extent, densifier, *args, **kwargs)
+        super().__init__(densifier)
         self.cap_max = cap_max
         self.densify_from_iter = relocate_from_iter
         self.densify_until_iter = relocate_until_iter
@@ -124,20 +85,55 @@ class Relocater(DensificationTrainer):
         reinit_idx, ratio = _sample_alives(alive_indices=alive_indices, probs=probs, num=dead_indices.shape[0])
 
         (
-            model._xyz[dead_indices],
-            model._features_dc[dead_indices],
-            model._features_rest[dead_indices],
-            model._opacity[dead_indices],
-            model._scaling[dead_indices],
-            model._rotation[dead_indices]
+            replace_xyz,
+            replace_features_dc,
+            replace_features_rest,
+            replace_opacity,
+            replace_scaling,
+            replace_rotation,
         ) = _update_params(model, reinit_idx, ratio=ratio)
 
-        model._opacity[reinit_idx] = model._opacity[dead_indices]
-        model._scaling[reinit_idx] = model._scaling[dead_indices]
+        # (
+        #     model._xyz[dead_indices],
+        #     model._features_dc[dead_indices],
+        #     model._features_rest[dead_indices],
+        #     model._opacity[dead_indices],
+        #     model._scaling[dead_indices],
+        #     model._rotation[dead_indices]
+        # ) = _update_params(model, reinit_idx, ratio=ratio)
 
-        replace_tensors_to_optimizer(model, self.optimizer, inds=reinit_idx)
+        replace_indices = dead_indices.argsort()
+        relocation = DensificationInstruct(
+            replace_xyz_mask=dead_mask,
+            replace_xyz=replace_xyz[replace_indices],
+            replace_features_dc_mask=dead_mask,
+            replace_features_dc=replace_features_dc[replace_indices],
+            replace_features_rest_mask=dead_mask,
+            replace_features_rest=replace_features_rest[replace_indices],
+            replace_opacity_mask=dead_mask,
+            replace_opacity=replace_opacity[replace_indices],
+            replace_scaling_mask=dead_mask,
+            replace_scaling=replace_scaling[replace_indices],
+            replace_rotation_mask=dead_mask,
+            replace_rotation=replace_rotation[replace_indices],
+        )
 
-    def add_new_gs(self, cap_max, densification_postfix):
+        # model._opacity[reinit_idx] = model._opacity[dead_indices]
+        # model._scaling[reinit_idx] = model._scaling[dead_indices]
+
+        reinit_mask, replace_opacity, replace_scaling = _unique_reinit(dead_mask.shape[0], reinit_idx, replace_opacity, replace_scaling)
+        reinitialization = DensificationInstruct(
+            replace_opacity_mask=reinit_mask,
+            replace_opacity=replace_opacity,
+            replace_scaling_mask=reinit_mask,
+            replace_scaling=replace_scaling,
+        )
+
+        # replace_tensors_to_optimizer(model, self.optimizer, inds=reinit_idx)
+
+        return DensificationInstruct.merge(reinitialization, relocation)
+
+    def add_new_gs(self, cap_max) -> DensificationInstruct:
         model = self.model
         # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L504
         current_num_points = model._opacity.shape[0]
@@ -145,7 +141,7 @@ class Relocater(DensificationTrainer):
         num_gs = max(0, target_num - current_num_points)
 
         if num_gs <= 0:
-            return densification_postfix(None, None, None, None, None, None)
+            return DensificationInstruct()
 
         probs = model.get_opacity.squeeze(-1)
         add_idx, ratio = _sample_alives(probs=probs, num=num_gs)
@@ -159,79 +155,79 @@ class Relocater(DensificationTrainer):
             new_rotation
         ) = _update_params(model, add_idx, ratio=ratio)
 
-        model._opacity[add_idx] = new_opacity
-        model._scaling[add_idx] = new_scaling
+        # model._opacity[add_idx] = new_opacity
+        # model._scaling[add_idx] = new_scaling
 
-        ret = densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation)
-        replace_tensors_to_optimizer(model, self.optimizer, inds=add_idx)
+        # ret = densification_postfix(new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation)
+        # replace_tensors_to_optimizer(model, self.optimizer, inds=add_idx)
 
-        return ret
+        reinit_mask, replace_opacity, replace_scaling = _unique_reinit(model._opacity.shape[0], add_idx, new_opacity, new_scaling)
+        return DensificationInstruct(
+            new_xyz=new_xyz,
+            new_features_dc=new_features_dc,
+            new_features_rest=new_features_rest,
+            new_opacity=new_opacity,
+            new_scaling=new_scaling,
+            new_rotation=new_rotation,
+            replace_opacity_mask=reinit_mask,
+            replace_opacity=replace_opacity,
+            replace_scaling_mask=reinit_mask,
+            replace_scaling=replace_scaling,
+        )
 
-    def relocate_and_add_new_gs(self, densification_postfix):
+    def relocate_and_add_new_gs(self):
         # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/train.py#L125
         dead_mask = (self.model.get_opacity <= 0.005).squeeze(-1)
-        self.relocate_gs(dead_mask=dead_mask)
-        return self.add_new_gs(cap_max=self.cap_max, densification_postfix=densification_postfix)
+        return DensificationInstruct.merge(
+            self.relocate_gs(dead_mask=dead_mask),
+            self.add_new_gs(cap_max=self.cap_max)
+        )
 
-    def add_new_gs_postfix_remove_mask(self, remove_mask, new_xyz, new_features_dc, new_features_rest, new_opacity, new_scaling, new_rotation):
-        if new_xyz is None:
-            return remove_mask
-        assert new_features_dc is not None
-        assert new_features_rest is not None
-        assert new_opacity is not None
-        assert new_scaling is not None
-        assert new_rotation is not None
-        self.add_points(
-            new_xyz,
-            new_features_dc,
-            new_features_rest,
-            new_opacity,
-            new_scaling,
-            new_rotation)
-        if remove_mask is None:
-            return None
-        return torch.cat([remove_mask, torch.zeros(new_xyz.shape[0], dtype=torch.bool, device=remove_mask.device)], dim=0)
-
-    def relocate_and_add_new_gs_and_update_instruct(self, instruct: DensificationInstruct):
-        remove_mask = self.relocate_and_add_new_gs(partial(self.add_new_gs_postfix_remove_mask, instruct.remove_mask))
-        instruct = instruct._replace(remove_mask=remove_mask)
+    def densify_and_prune(self, loss, out, camera, step: int) -> DensificationInstruct:
+        instruct = super().densify_and_prune(loss, out, camera, step)
+        if self.densify_from_iter <= step <= self.densify_until_iter and step % self.densify_interval == 0:
+            instruct = DensificationInstruct.merge(instruct, self.relocate_and_add_new_gs())
         return instruct
 
-    def densify_and_prune(self, loss, out, camera):
-        instruct = self.densifier.densify_and_prune(loss, out, camera, self.curr_step)
-        hook = False
-        if self.densify_from_iter <= self.curr_step <= self.densify_until_iter and self.curr_step % self.densify_interval == 0:
-            instruct = self.relocate_and_add_new_gs_and_update_instruct(instruct)
-            hook = True
-        if instruct.remove_mask is not None:
-            self.remove_points(instruct.remove_mask)
-            hook = True
-        if instruct.new_xyz is not None:
-            assert instruct.new_features_dc is not None
-            assert instruct.new_features_rest is not None
-            assert instruct.new_opacities is not None
-            assert instruct.new_scaling is not None
-            assert instruct.new_rotation is not None
-            self.add_points(
-                instruct.new_xyz,
-                instruct.new_features_dc,
-                instruct.new_features_rest,
-                instruct.new_opacities,
-                instruct.new_scaling,
-                instruct.new_rotation)
-            hook = True
-        if hook:
-            self.densifier.after_densify_and_prune_hook(loss, out, camera)
-            torch.cuda.empty_cache()
+
+def RelocationDensifierWrapper(
+        base_densifier_constructor: Callable[..., AbstractDensifier],
+        model: GaussianModel,
+        scene_extent: float,
+        *args,
+        cap_max=1_000_000,
+        relocate_from_iter=500,
+        relocate_until_iter=25_000,
+        relocate_interval=100,
+        **kwargs):
+    return Relocater(
+        base_densifier_constructor(model, scene_extent, *args, **kwargs),
+        cap_max=cap_max,
+        relocate_from_iter=relocate_from_iter,
+        relocate_until_iter=relocate_until_iter,
+        relocate_interval=relocate_interval,
+    )
 
 
 def RelocationDensifierTrainerWrapper(
         noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
-        *args, **kwargs):
+        *args,
+        cap_max=1_000_000,
+        relocate_from_iter=500,
+        relocate_until_iter=25_000,
+        relocate_interval=100,
+        **kwargs):
     densifier = noargs_base_densifier_constructor(model, scene_extent)
-    return Relocater(
+    densifier = Relocater(
+        densifier,
+        cap_max=cap_max,
+        relocate_from_iter=relocate_from_iter,
+        relocate_until_iter=relocate_until_iter,
+        relocate_interval=relocate_interval,
+    )
+    return DensificationTrainer(
         model, scene_extent,
         densifier,
         *args, **kwargs
