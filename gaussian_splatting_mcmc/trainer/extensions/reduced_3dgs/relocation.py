@@ -3,100 +3,43 @@ from typing import Callable, List
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
 from gaussian_splatting.trainer import DepthTrainerWrapper
-from gaussian_splatting.trainer.densifier import AbstractDensifier, NoopDensifier, DensificationTrainer
-from gaussian_splatting_mcmc.trainer import RelocationDensifierWrapper
-from reduced_3dgs import FullReducedDensificationDensifierWrapper, FullPruningDensifierWrapper
+from gaussian_splatting.trainer.densifier import AbstractDensifier, NoopDensifier
+from gaussian_splatting_mcmc.trainer import MCMCTrainerWrapper
+from reduced_3dgs import FullReducedDensificationDensifierWrapper
 
-
-# Combinations of Relocation and Full Pruning Densifier
-
-def FullPruningRelocationDensifierWrapper(
-        base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
-        *args, **kwargs) -> AbstractDensifier:
-    return FullPruningDensifierWrapper(
-        partial(RelocationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def FullPruningRelocationTrainerWrapper(
-        base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
-        *args, **kwargs):
-    return DensificationTrainer.from_densifier_constructor(
-        partial(FullPruningRelocationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def BaseFullPruningRelocationTrainer(
-        model: GaussianModel,
-        scene_extent: float,
-        dataset: List[Camera],
-        *args, **kwargs):
-    return FullPruningRelocationTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def DepthFullPruningRelocationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(
-        BaseFullPruningRelocationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-FullPruningRelocationTrainer = DepthFullPruningRelocationTrainer
 
 # Combinations of Relocation and Full Reduced Densifier
 
 
-def FullReducedRelocationDensifierWrapper(
-        base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
-        *args, **kwargs) -> AbstractDensifier:
-    return FullReducedDensificationDensifierWrapper(
-        partial(RelocationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def FullReducedRelocationTrainerWrapper(
+def MCMCFullReducedDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel, scene_extent: float, dataset: List[Camera],
         *args, **kwargs):
-    return DensificationTrainer.from_densifier_constructor(
-        partial(FullReducedRelocationDensifierWrapper, base_densifier_constructor),
+    return MCMCTrainerWrapper(
+        partial(FullReducedDensificationDensifierWrapper, base_densifier_constructor),
         model, scene_extent, dataset,
         *args, **kwargs
     )
 
 
-def BaseFullReducedRelocationTrainer(
+def BaseMCMCFullReducedDensificationTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
         *args, **kwargs):
-    return FullReducedRelocationTrainerWrapper(
+    return MCMCFullReducedDensificationTrainerWrapper(
         lambda model, *args, **kwargs: NoopDensifier(model),
         model, scene_extent, dataset,
         *args, **kwargs
     )
 
 
-def DepthFullReducedRelocationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthMCMCFullReducedDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
     return DepthTrainerWrapper(
-        BaseFullReducedRelocationTrainer,
+        BaseMCMCFullReducedDensificationTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
 
 
-FullReducedRelocationTrainer = DepthFullReducedRelocationTrainer
+MCMCFullReducedDensificationTrainer = DepthMCMCFullReducedDensificationTrainer
