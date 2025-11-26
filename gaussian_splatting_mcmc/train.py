@@ -28,19 +28,19 @@ modes = {
 }
 
 
-def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, trainable_camera: bool = False, load_ply: str = None, configs={}) -> AbstractTrainer:
+def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, configs={}) -> AbstractTrainer:
     constructor = modes[mode]
-    if trainable_camera or "reduced" in mode:
+    if mode in ["base", "noreg"]:
         trainer = constructor(
             gaussians,
             scene_extent=dataset.scene_extent(),
-            dataset=dataset,
             **configs
         )
     else:
         trainer = constructor(
             gaussians,
             scene_extent=dataset.scene_extent(),
+            dataset=dataset,
             **configs
         )
     return trainer
@@ -53,7 +53,7 @@ def prepare_training(
         configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
     dataset = prepare_dataset(source=source, device=device, trainable_camera=trainable_camera, load_camera=load_camera, load_mask=load_mask, load_depth=load_depth)
     gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=trainable_camera, load_ply=load_ply)
-    trainer = prepare_trainer(gaussians=gaussians, dataset=dataset, mode=mode, trainable_camera=trainable_camera, load_ply=load_ply, configs=configs)
+    trainer = prepare_trainer(gaussians=gaussians, dataset=dataset, mode=mode, configs=configs)
     return dataset, gaussians, trainer
 
 
