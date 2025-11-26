@@ -1,15 +1,15 @@
 from functools import partial
 from typing import Callable
-from gaussian_splatting import GaussianModel
+from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
-from gaussian_splatting.trainer import DepthTrainerWrapper
+from gaussian_splatting.trainer import DepthTrainerWrapper, CameraTrainerWrapper
 from gaussian_splatting.trainer.densifier import AbstractDensifier, NoopDensifier
 from gaussian_splatting_mcmc.trainer import MCMCTrainerWrapper
 from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainerWrapper
-from reduced_3dgs import FullPruningDensifierWrapper
+from reduced_3dgs import CameraTrainableVariableSHGaussianModel, FullPruningDensifierWrapper
 
 
-# Combinations of Relocation and Full Reduced Densifier
+# Combinations of MCMC and Full Pruning Densifier
 
 def MCMCFullPruningTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
@@ -45,6 +45,18 @@ def DepthMCMCFullPruningTrainer(model: GaussianModel, scene_extent: float, datas
 MCMCFullPruningTrainer = DepthMCMCFullPruningTrainer
 
 
+def CameraMCMCFullPruningTrainer(
+        model: CameraTrainableGaussianModel,
+        scene_extent: float,
+        dataset: TrainableCameraDataset,
+        *args, **kwargs):
+    return CameraTrainerWrapper(
+        MCMCFullPruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
 # Full Pruning Trainer + SH Culling
 
 def SHCullingMCMCFullPruningTrainer(
@@ -54,6 +66,18 @@ def SHCullingMCMCFullPruningTrainer(
         *args, **kwargs):
     return SHCullingTrainerWrapper(
         MCMCFullPruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
+def CameraSHCullingMCMCFullPruningTrainer(
+        model: CameraTrainableVariableSHGaussianModel,
+        scene_extent: float,
+        dataset: TrainableCameraDataset,
+        *args, **kwargs):
+    return CameraTrainerWrapper(
+        SHCullingMCMCFullPruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )

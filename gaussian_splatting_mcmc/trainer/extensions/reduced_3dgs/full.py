@@ -9,7 +9,7 @@ from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainerWrap
 from reduced_3dgs import CameraTrainableVariableSHGaussianModel, FullReducedDensificationDensifierWrapper
 
 
-# Combinations of Relocation and Full Reduced Densifier
+# Combinations of MCMC and Full Reduced Densifier
 
 def MCMCFullReducedDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
