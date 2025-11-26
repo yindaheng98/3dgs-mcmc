@@ -7,18 +7,24 @@ from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.prepare import prepare_dataset
 from reduced_3dgs.prepare import prepare_gaussians
 from gaussian_splatting.train import save_cfg_args, training
-from gaussian_splatting_mcmc.trainer import MCMCTrainer, CameraMCMCTrainer, NoRegMCMCTrainer, CameraNoRegMCMCTrainer
-from gaussian_splatting_mcmc.trainer.extensions.reduced_3dgs import MCMCFullTrainer, CameraMCMCFullTrainer, SHCullingMCMCFullTrainer, CameraSHCullingMCMCFullTrainer
+from gaussian_splatting_mcmc.trainer import MCMCTrainer, NoRegMCMCTrainer
+from gaussian_splatting_mcmc.trainer import CameraMCMCTrainer, NoRegCameraMCMCTrainer
+from gaussian_splatting_mcmc.trainer.extensions.reduced_3dgs import MCMCFullPruningTrainer, SHCullingMCMCFullPruningTrainer, OpacityResetMCMCFullReducedDensificationTrainer, SHCullingOpacityResetMCMCFullReducedDensificationTrainer
+from gaussian_splatting_mcmc.trainer.extensions.reduced_3dgs import CameraMCMCFullPruningTrainer, CameraSHCullingMCMCFullPruningTrainer, CameraOpacityResetMCMCFullReducedDensificationTrainer, CameraSHCullingOpacityResetMCMCFullReducedDensificationTrainer
 
 modes = {
     "base": MCMCTrainer,
-    "camera": CameraMCMCTrainer,
     "noreg": NoRegMCMCTrainer,
-    "camera-noreg": CameraNoRegMCMCTrainer,
-    "reduced": MCMCFullTrainer,
-    "camera-reduced": CameraMCMCFullTrainer,
-    "reduced-shculling": SHCullingMCMCFullTrainer,
-    "camera-reduced-shculling": CameraSHCullingMCMCFullTrainer,
+    "pruning": MCMCFullPruningTrainer,
+    "pruning-shculling": SHCullingMCMCFullPruningTrainer,
+    "densify-pruning": OpacityResetMCMCFullReducedDensificationTrainer,
+    "densify-pruning-shculling": SHCullingOpacityResetMCMCFullReducedDensificationTrainer,
+    "camera": CameraMCMCTrainer,
+    "camera-noreg": NoRegCameraMCMCTrainer,
+    "camera-pruning": CameraMCMCFullPruningTrainer,
+    "camera-pruning-shculling": CameraSHCullingMCMCFullPruningTrainer,
+    "camera-densify-pruning": CameraOpacityResetMCMCFullReducedDensificationTrainer,
+    "camera-densify-pruning-shculling": CameraSHCullingOpacityResetMCMCFullReducedDensificationTrainer,
 }
 
 
