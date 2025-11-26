@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
@@ -56,45 +57,23 @@ CameraMCMCTrainer = CameraScaleOpacityRegularizeNoiseRelocationTrainer
 
 
 def NoiseRelocationTrainerWrapper(
-        noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
-        model: GaussianModel,
-        scene_extent: float,
-        *args,
-        noise_lr=5e5,
-        noise_from_iter=0,
-        noise_until_iter=29_990,
-        **kwargs):
+        base_densifier_constructor: Callable[..., AbstractDensifier],
+        model: GaussianModel, scene_extent: float,
+        *args, **kwargs):
     return NoiseTrainerWrapper(
-        lambda model, scene_extent, *args, **kwargs: RelocationTrainerWrapper(
-            noargs_base_densifier_constructor, model, scene_extent, *args, **kwargs),
+        partial(RelocationTrainerWrapper, base_densifier_constructor),
         model, scene_extent,
-        *args,
-        noise_lr=noise_lr,
-        noise_from_iter=noise_from_iter,
-        noise_until_iter=noise_until_iter,
-        **kwargs)
+        *args, **kwargs)
 
 
 def ScaleOpacityRegularizeNoiseRelocationTrainerWrapper(
-        noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
-        model: GaussianModel,
-        scene_extent: float,
-        *args,
-        scale_reg_from_iter=0,
-        scale_reg_weight=0.01,
-        opacity_reg_from_iter=0,
-        opacity_reg_weight=0.01,
-        **kwargs):
+        base_densifier_constructor: Callable[..., AbstractDensifier],
+        model: GaussianModel, scene_extent: float,
+        *args, **kwargs):
     return ScaleOpacityRegularizeTrainerWrapper(
-        NoiseRelocationTrainerWrapper,
-        noargs_base_densifier_constructor,
+        partial(NoiseRelocationTrainerWrapper, base_densifier_constructor),
         model, scene_extent,
-        *args,
-        scale_reg_from_iter=scale_reg_from_iter,
-        scale_reg_weight=scale_reg_weight,
-        opacity_reg_from_iter=opacity_reg_from_iter,
-        opacity_reg_weight=opacity_reg_weight,
-        **kwargs)
+        *args, **kwargs)
 
 
 NoRegMCMCTrainerWrapper = NoiseRelocationTrainerWrapper
