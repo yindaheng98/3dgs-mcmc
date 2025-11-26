@@ -1,3 +1,4 @@
+from functools import partial
 import math
 from typing import Callable
 import torch
@@ -210,36 +211,24 @@ def RelocationDensifierWrapper(
 
 
 def RelocationTrainerWrapper(
-        noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
-        model: GaussianModel,
-        scene_extent: float,
-        *args,
-        cap_max=1_000_000,
-        relocate_from_iter=500,
-        relocate_until_iter=25_000,
-        relocate_interval=100,
-        **kwargs):
-    densifier = noargs_base_densifier_constructor(model, scene_extent)
-    densifier = Relocater(
-        densifier,
-        cap_max=cap_max,
-        relocate_from_iter=relocate_from_iter,
-        relocate_until_iter=relocate_until_iter,
-        relocate_interval=relocate_interval,
-    )
-    return DensificationTrainer(
+        base_densifier_constructor: Callable[..., AbstractDensifier],
+        model: GaussianModel, scene_extent: float,
+        *args, **kwargs):
+    return DensificationTrainer.from_densifier_constructor(
+        partial(RelocationDensifierWrapper, base_densifier_constructor),
         model, scene_extent,
-        densifier,
         *args, **kwargs
     )
 
 # similar to gaussian_splatting.trainer.densifier.densifier
 
 
-def BaseRelocationTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs):
+def BaseRelocationTrainer(
+        model: GaussianModel,
+        scene_extent: float,
+        *args, **kwargs):
     return RelocationTrainerWrapper(
-        lambda model, scene_extent: NoopDensifier(model),
-        model,
-        scene_extent,
+        lambda model, *args, **kwargs: NoopDensifier(model),
+        model, scene_extent,
         *args, **kwargs
     )

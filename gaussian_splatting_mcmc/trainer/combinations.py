@@ -17,6 +17,20 @@ def DepthNoiseRelocationTrainer(model: GaussianModel, scene_extent: float, *args
     return DepthTrainerWrapper(BaseNoiseRelocationTrainer, model, scene_extent, *args, **kwargs)
 
 
+NoiseRelocationTrainer = DepthNoiseRelocationTrainer
+
+
+def CameraNoiseRelocationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+    return CameraTrainerWrapper(
+        lambda model, scene_extent, dataset, *args, **kwargs: DepthNoiseRelocationTrainer(model, scene_extent, *args, **kwargs),
+        model, scene_extent, dataset,
+        *args, **kwargs)
+
+
+NoRegMCMCTrainer = NoiseRelocationTrainer
+NoRegCameraMCMCTrainer = CameraNoiseRelocationTrainer
+
+
 def BaseScaleOpacityRegularizeNoiseRelocationTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs):
     return ScaleOpacityRegularizeTrainerWrapper(BaseNoiseRelocationTrainer, model, scene_extent, *args, **kwargs)
 
@@ -25,32 +39,18 @@ def DepthScaleOpacityRegularizeNoiseRelocationTrainer(model: GaussianModel, scen
     return DepthTrainerWrapper(BaseScaleOpacityRegularizeNoiseRelocationTrainer, model, scene_extent, *args, **kwargs)
 
 
-def BaseNoiseRelocationCameraTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+ScaleOpacityRegularizeNoiseRelocationTrainer = DepthScaleOpacityRegularizeNoiseRelocationTrainer
+
+
+def CameraScaleOpacityRegularizeNoiseRelocationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
     return CameraTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: BaseNoiseRelocationTrainer(model, scene_extent, *args, **kwargs),
+        lambda model, scene_extent, dataset, *args, **kwargs: DepthScaleOpacityRegularizeNoiseRelocationTrainer(model, scene_extent, *args, **kwargs),
         model, scene_extent, dataset,
         *args, **kwargs)
 
 
-def DepthNoiseRelocationCameraTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BaseNoiseRelocationCameraTrainer, model, scene_extent, dataset, *args, **kwargs)
-
-
-def BaseScaleOpacityRegularizeNoiseRelocationCameraTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return CameraTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: BaseScaleOpacityRegularizeNoiseRelocationTrainer(model, scene_extent, *args, **kwargs),
-        model, scene_extent, dataset,
-        *args, **kwargs)
-
-
-def DepthScaleOpacityRegularizeNoiseRelocationCameraTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BaseScaleOpacityRegularizeNoiseRelocationCameraTrainer, model, scene_extent, dataset, *args, **kwargs)
-
-
-NoRegMCMCTrainer = DepthNoiseRelocationTrainer
-MCMCTrainer = DepthScaleOpacityRegularizeNoiseRelocationTrainer
-NoRegMCMCCameraTrainer = DepthNoiseRelocationCameraTrainer
-MCMCCameraTrainer = DepthScaleOpacityRegularizeNoiseRelocationCameraTrainer
+MCMCTrainer = ScaleOpacityRegularizeNoiseRelocationTrainer
+CameraMCMCTrainer = CameraScaleOpacityRegularizeNoiseRelocationTrainer
 
 # similar to BaseOpacityResetDensificationTrainer in gaussian_splatting.trainer.combinations
 
