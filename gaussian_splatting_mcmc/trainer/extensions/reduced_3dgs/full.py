@@ -5,40 +5,39 @@ from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import DepthTrainerWrapper, OpacityResetTrainerWrapper, CameraTrainerWrapper
 from gaussian_splatting.trainer.densifier import AbstractDensifier, NoopDensifier
 from gaussian_splatting_mcmc.trainer import MCMCTrainerWrapper
-from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainerWrapper
-from reduced_3dgs import CameraTrainableVariableSHGaussianModel, FullReducedDensificationDensifierWrapper
+from reduced_3dgs.shculling import VariableSHGaussianModel, CameraTrainableVariableSHGaussianModel, SHCullingTrainerWrapper
+from reduced_3dgs import FullReducedDensificationDensifierWrapper
 
 
 # Combinations of MCMC and Full Reduced Densifier
 
 def MCMCFullReducedDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset, *args,
+        **configs):
     return MCMCTrainerWrapper(
         partial(FullReducedDensificationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset, *args,
+        **configs
     )
 
 
 def BaseMCMCFullReducedDensificationTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return MCMCFullReducedDensificationTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )
 
 
-def DepthMCMCFullReducedDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthMCMCFullReducedDensificationTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BaseMCMCFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -47,13 +46,12 @@ MCMCFullReducedDensificationTrainer = DepthMCMCFullReducedDensificationTrainer
 
 def CameraMCMCFullReducedDensificationTrainer(
         model: CameraTrainableGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         MCMCFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -61,49 +59,45 @@ def CameraMCMCFullReducedDensificationTrainer(
 
 def OpacityResetMCMCFullReducedDensificationTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return OpacityResetTrainerWrapper(
         MCMCFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraOpacityResetMCMCFullReducedDensificationTrainer(
         model: CameraTrainableGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         OpacityResetMCMCFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 # Full Reduced Densification Trainer + Opacity Reset + SH Culling
 
 def SHCullingOpacityResetMCMCFullReducedDensificationTrainer(
-    model: VariableSHGaussianModel,
-        scene_extent: float,
+        model: VariableSHGaussianModel,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
         OpacityResetMCMCFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraSHCullingOpacityResetMCMCFullReducedDensificationTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         SHCullingOpacityResetMCMCFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )

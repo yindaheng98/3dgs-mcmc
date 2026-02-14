@@ -2,6 +2,7 @@ import torch
 from typing import Callable
 
 from gaussian_splatting import GaussianModel
+from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper
 from gaussian_splatting.utils import build_scaling_rotation
 from gaussian_splatting.trainer import BaseTrainer
@@ -45,21 +46,21 @@ class Noiser(TrainerWrapper):
 def NoiseTrainerWrapper(
         base_trainer_constructor: Callable[..., AbstractTrainer],
         model: GaussianModel,
-        scene_extent: float,
+        dataset: CameraDataset,
         *args,
         noise_lr=5e5,
         noise_from_iter=0,
         noise_until_iter=29_990,
-        **kwargs) -> Noiser:
+        **configs) -> Noiser:
     return Noiser(
-        base_trainer=base_trainer_constructor(model, scene_extent, *args, **kwargs),
+        base_trainer=base_trainer_constructor(model, dataset, *args, **configs),
         noise_lr=noise_lr,
         noise_from_iter=noise_from_iter,
         noise_until_iter=noise_until_iter,
     )
 
 
-def BaseNoiseTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs) -> Noiser:
-    return NoiseTrainerWrapper(BaseTrainer, model, scene_extent, *args, **kwargs)
+def BaseNoiseTrainer(model: GaussianModel, dataset: CameraDataset, **configs) -> Noiser:
+    return NoiseTrainerWrapper(BaseTrainer, model, dataset, **configs)
 
 # similar to gaussian_splatting.trainer.depth

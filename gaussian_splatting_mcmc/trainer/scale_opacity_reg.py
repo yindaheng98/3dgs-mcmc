@@ -3,6 +3,7 @@ from typing import Callable
 import torch
 
 from gaussian_splatting import Camera, GaussianModel
+from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, BaseTrainer
 
 
@@ -32,16 +33,16 @@ class ScaleOpacityRegularizer(TrainerWrapper):
 def ScaleOpacityRegularizeTrainerWrapper(
     base_trainer_constructor: Callable[..., AbstractTrainer],
     model: GaussianModel,
-    scene_extent: float,
+    dataset: CameraDataset,
     *args,
     scale_reg_from_iter=0,
     scale_reg_weight=0.01,
     opacity_reg_from_iter=0,
     opacity_reg_weight=0.01,
-    **kwargs
+    **configs
 ) -> ScaleOpacityRegularizer:
     return ScaleOpacityRegularizer(
-        base_trainer_constructor(model, scene_extent, *args, **kwargs),
+        base_trainer_constructor(model, dataset, *args, **configs),
         scale_reg_from_iter=scale_reg_from_iter,
         scale_reg_weight=scale_reg_weight,
         opacity_reg_from_iter=opacity_reg_from_iter,
@@ -49,7 +50,7 @@ def ScaleOpacityRegularizeTrainerWrapper(
     )
 
 
-def BaseScaleOpacityRegularizeTrainer(model: GaussianModel, scene_extent: float, *args, **kwargs) -> ScaleOpacityRegularizer:
-    return ScaleOpacityRegularizeTrainerWrapper(BaseTrainer, model, scene_extent, *args, **kwargs)
+def BaseScaleOpacityRegularizeTrainer(model: GaussianModel, dataset: CameraDataset, **configs) -> ScaleOpacityRegularizer:
+    return ScaleOpacityRegularizeTrainerWrapper(BaseTrainer, model, dataset, **configs)
 
 # similar to gaussian_splatting.trainer.depth

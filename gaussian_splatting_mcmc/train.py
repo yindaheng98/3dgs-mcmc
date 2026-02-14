@@ -30,19 +30,11 @@ modes = {
 
 def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, configs={}) -> AbstractTrainer:
     constructor = modes[mode]
-    if mode in ["base", "noreg"]:
-        trainer = constructor(
-            gaussians,
-            scene_extent=dataset.scene_extent(),
-            **configs
-        )
-    else:
-        trainer = constructor(
-            gaussians,
-            scene_extent=dataset.scene_extent(),
-            dataset=dataset,
-            **configs
-        )
+    trainer = constructor(
+        gaussians,
+        dataset=dataset,
+        **configs
+    )
     return trainer
 
 

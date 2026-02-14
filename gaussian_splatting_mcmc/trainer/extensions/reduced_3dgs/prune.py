@@ -5,40 +5,39 @@ from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import DepthTrainerWrapper, CameraTrainerWrapper
 from gaussian_splatting.trainer.densifier import AbstractDensifier, NoopDensifier
 from gaussian_splatting_mcmc.trainer import MCMCTrainerWrapper
-from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainerWrapper
-from reduced_3dgs import CameraTrainableVariableSHGaussianModel, FullPruningDensifierWrapper
+from reduced_3dgs.shculling import VariableSHGaussianModel, CameraTrainableVariableSHGaussianModel, SHCullingTrainerWrapper
+from reduced_3dgs import FullPruningDensifierWrapper
 
 
 # Combinations of MCMC and Full Pruning Densifier
 
 def MCMCFullPruningTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset, *args,
+        **configs):
     return MCMCTrainerWrapper(
         partial(FullPruningDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset, *args,
+        **configs
     )
 
 
 def BaseMCMCFullPruningTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return MCMCFullPruningTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )
 
 
-def DepthMCMCFullPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthMCMCFullPruningTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BaseMCMCFullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -47,37 +46,34 @@ MCMCFullPruningTrainer = DepthMCMCFullPruningTrainer
 
 def CameraMCMCFullPruningTrainer(
         model: CameraTrainableGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         MCMCFullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 # Full Pruning Trainer + SH Culling
 
 def SHCullingMCMCFullPruningTrainer(
-    model: VariableSHGaussianModel,
-        scene_extent: float,
+        model: VariableSHGaussianModel,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
         MCMCFullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraSHCullingMCMCFullPruningTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         SHCullingMCMCFullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )

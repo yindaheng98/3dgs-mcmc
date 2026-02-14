@@ -3,6 +3,7 @@ import math
 from typing import Callable
 import torch
 from gaussian_splatting import GaussianModel
+from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, DensificationInstruct, NoopDensifier
 from .diff_gaussian_rasterization import compute_relocation
 
@@ -194,15 +195,15 @@ class Relocater(DensifierWrapper):
 def RelocationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel,
-        scene_extent: float,
+        dataset: CameraDataset,
         *args,
         cap_max=1_000_000,
         relocate_from_iter=500,
         relocate_until_iter=25_000,
         relocate_interval=100,
-        **kwargs):
+        **configs):
     return Relocater(
-        base_densifier_constructor(model, scene_extent, *args, **kwargs),
+        base_densifier_constructor(model, dataset, *args, **configs),
         cap_max=cap_max,
         relocate_from_iter=relocate_from_iter,
         relocate_until_iter=relocate_until_iter,
@@ -212,12 +213,12 @@ def RelocationDensifierWrapper(
 
 def RelocationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset, *args,
+        **configs):
     return DensificationTrainer.from_densifier_constructor(
         partial(RelocationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent,
-        *args, **kwargs
+        model, dataset, *args,
+        **configs
     )
 
 # similar to gaussian_splatting.trainer.densifier.densifier
@@ -225,10 +226,10 @@ def RelocationTrainerWrapper(
 
 def BaseRelocationTrainer(
         model: GaussianModel,
-        scene_extent: float,
-        *args, **kwargs):
+        dataset: CameraDataset,
+        **configs):
     return RelocationTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )
