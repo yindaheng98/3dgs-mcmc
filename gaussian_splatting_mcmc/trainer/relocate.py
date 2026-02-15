@@ -73,14 +73,14 @@ class Relocater(DensifierWrapper):
         model = self.model
         # https://github.com/ubc-vision/3dgs-mcmc/blob/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13/scene/gaussian_model.py#L474
         if dead_mask.sum() == 0:
-            return
+            return DensificationInstruct()
 
         alive_mask = ~dead_mask
         dead_indices = dead_mask.nonzero(as_tuple=True)[0]
         alive_indices = alive_mask.nonzero(as_tuple=True)[0]
 
         if alive_indices.shape[0] <= 0:
-            return
+            return DensificationInstruct()
 
         # sample from alive ones based on opacity
         probs = (model.get_opacity[alive_indices, 0])
