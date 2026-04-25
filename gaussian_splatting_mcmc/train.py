@@ -80,4 +80,4 @@ if __name__ == "__main__":
     training(
         dataset=dataset, gaussians=gaussians, trainer=trainer,
         destination=args.destination, iteration=args.iteration, save_iterations=args.save_iterations,
-        device=args.device, empty_cache_every_step=args.empty_cache_every_step)
+        empty_cache_every_step=args.empty_cache_every_step)
