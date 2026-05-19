@@ -1,5 +1,11 @@
 # 3D Gaussian Splatting as Markov Chain Monte Carlo (Packaged Python Version)
 
+[![PyPI version](https://img.shields.io/pypi/v/gaussian-splatting-mcmc.svg?logo=pypi)](https://pypi.org/project/gaussian-splatting-mcmc/)
+[![Downloads](https://api.pepy.tech/personalized-badge/gaussian-splatting-mcmc?period=month&left_color=grey&right_color=brightgreen&left_text=monthly%20downloads)](https://pepy.tech/project/gaussian-splatting-mcmc)
+[![Total downloads](https://api.pepy.tech/personalized-badge/gaussian-splatting-mcmc?period=total&left_color=grey&right_color=brightgreen&left_text=total%20downloads)](https://pepy.tech/project/gaussian-splatting-mcmc)
+[![CI](https://github.com/yindaheng98/3dgs-mcmc/actions/workflows/build-release-linux.yml/badge.svg)](https://github.com/yindaheng98/3dgs-mcmc/actions/workflows/ci.yml)
+[![CI](https://github.com/yindaheng98/3dgs-mcmc/actions/workflows/build-release-win.yml/badge.svg)](https://github.com/yindaheng98/3dgs-mcmc/actions/workflows/ci.yml)
+
 This repository contains the **refactored Python code for [3dgs-mcmc](https://github.com/ubc-vision/3dgs-mcmc)**. It is forked from commit [7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13](https://github.com/ubc-vision/3dgs-mcmc/tree/7b4fc9f76a1c7b775f69603cb96e70f80c7e6d13). The original code has been **refactored to follow the standard Python package structure**, while **maintaining the same algorithms as the original version**.
 
 ## Features
